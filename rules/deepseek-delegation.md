@@ -29,10 +29,17 @@ Plan-mode step annotation `[DeepSeek]` / `[Claude]` is the primary routing point
 Large tasks → Plan mode, each step explicitly labeled.
 Simple single-step tasks → decide directly from routing table.
 
+**Delegation threshold**
+
+Delegate to DeepSeek when expected output > ~50 tokens of prose/documentation.
+The minimum audit cost with FLAGS header is ~50 tokens — any task exceeding this
+is cost-neutral or cheaper via DeepSeek. Default presumption: DeepSeek handles prose,
+Claude handles reasoning. Claude must justify why it is doing prose work, not the reverse.
+
 **Mandatory pre-execution routing plan** (bright-line rule, 2026-05-24):
-If a task will create or modify ≥ 3 prose/documentation files, Claude MUST output
-a routing plan with every step labeled `[DeepSeek]` or `[Claude]` BEFORE any tool call,
-and MUST wait for user confirmation before executing step 1. No exceptions.
+For any task whose expected output is prose/documentation > ~50 tokens, Claude MUST
+output a routing plan with every step labeled `[DeepSeek]` or `[Claude]` BEFORE any
+tool call, and MUST wait for user confirmation before executing step 1. No exceptions.
 Violation = Claude executed prose/doc work without routing review.
 
 **Programmatic delegation**

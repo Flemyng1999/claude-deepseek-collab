@@ -148,10 +148,12 @@ for the authoritative model list and any updates.
 | `04-async-parallel.md` | Parallel delegation, error handling, rate limit guidance |
 | `05-structured-output.md` | FLAGS-first format, audit interpretation, example exchange |
 | `06-speculative-exec.md` | Multi-path parallel exploration for uncertain decisions |
+| `07-self-critique-loop.md` | Two-instance loop — Instance 1 drafts, Instance 2 critiques; Claude reads only the critique (~50-100 tokens). Use for prose >300 tokens where accuracy matters. |
+| `08-scdp.md` | Stateless Chunk-Directive Protocol — DeepSeek receives a compact capsule of file summaries, requests chunks on demand via `<<EXPAND>>` directives; enables large-file tasks without inline-embedding. |
 
 ## Known limitations
 
-- `--bare` means DeepSeek has no file access — all context must be embedded inline
-- DeepSeek's self-consistency is weaker than Claude's — always audit before integrating
+- `--bare` means DeepSeek has no file access — embed context inline for small tasks; for large-file tasks, use SCDP (Protocol 08)
+- DeepSeek's self-consistency is weaker than Claude's — always audit before integrating (use self-critique loop, Protocol 07, for prose >300 tokens)
 - Rate limit: avoid >5 simultaneous parallel calls
 - Tasks requiring iterative file editing or multi-turn refinement remain Claude-only
