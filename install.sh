@@ -5,6 +5,8 @@ set -euo pipefail
 BIN_DIR="$HOME/.local/bin"
 CONFIG_DIR="$HOME/.config/claude-code"
 RULES_DIR="$HOME/.claude/rules"
+CLAUDE_MD="$HOME/.claude/CLAUDE.md"
+RULE_LINE='@~/.claude/rules/deepseek-delegation.md'
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "=== claude-deepseek-collab installer ==="
@@ -47,19 +49,26 @@ else
   echo "      done"
 fi
 
-# 4. Reminder for CLAUDE.md and settings.json
-echo "[4/4] Manual steps required:"
-echo ""
-echo "  a) Add this line to ~/.claude/CLAUDE.md (or your project CLAUDE.md):"
-echo '     @~/.claude/rules/deepseek-delegation.md'
-echo ""
-echo "  b) Add the following to the SessionStart array in ~/.claude/settings.json:"
-cat "$REPO_DIR/hooks/session-start.snippet.json"
-echo ""
-echo "  c) If $BIN_DIR is not in your PATH, add to ~/.bashrc or ~/.zshrc:"
-echo '     export PATH="$HOME/.local/bin:$PATH"'
+# 4. Wire routing rules into ~/.claude/CLAUDE.md
+echo "[4/4] Wiring rules into $CLAUDE_MD"
+mkdir -p "$(dirname "$CLAUDE_MD")"
+if [[ -f "$CLAUDE_MD" ]] && grep -qF "$RULE_LINE" "$CLAUDE_MD"; then
+  echo "      Already present, skipping"
+else
+  printf '\n%s\n' "$RULE_LINE" >> "$CLAUDE_MD"
+  echo "      Added"
+fi
+
 echo ""
 echo "=== Installation complete ==="
 echo ""
+
+# PATH reminder if needed
+if ! command -v claude-deepseek &>/dev/null; then
+  echo "NOTE: $BIN_DIR is not in your PATH. Add to ~/.bashrc or ~/.zshrc:"
+  echo "  export PATH=\"\$HOME/.local/bin:\$PATH\""
+  echo ""
+fi
+
 echo "Test with:"
 echo '  claude-deepseek --print --bare -p "Say hello in one sentence."'

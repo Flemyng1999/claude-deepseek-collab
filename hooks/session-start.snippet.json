@@ -1,9 +1,9 @@
 {
-  "_comment": "Add this object to the SessionStart array in ~/.claude/settings.json",
+  "_comment": "OPTIONAL — not required for the core routing architecture. The routing rules are loaded automatically via the CLAUDE.md @import added by install.sh. Add this to the SessionStart array in ~/.claude/settings.json only if you want a per-session availability reminder.",
   "hooks": [
     {
       "type": "command",
-      "command": "test -s ~/.local/share/claude-code-dream/queue/pending-decisions.md && echo '--- Pending decisions ---' && cat ~/.local/share/claude-code-dream/queue/pending-decisions.md"
+      "command": "command -v claude-deepseek >/dev/null 2>&1 && echo '[claude-deepseek] DeepSeek delegation ready'"
     }
   ]
 }
