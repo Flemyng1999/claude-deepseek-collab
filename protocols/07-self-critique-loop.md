@@ -206,7 +206,7 @@ the flagged items as follow-up tasks rather than blocking the pipeline.
 
 ## 5. Cost Model
 
-The self-critique loop is a **quality mechanism**, not a cost-saving mechanism.
+The self-critique loop is a **quality-control mechanism**, not a token-efficiency mechanism.
 It trades one additional DeepSeek call (Instance 2 adversarial review) for reduced
 Claude re-prompting iterations — catching errors before they reach the human or
 Claude audit stage, where correction cost is higher in both tokens and cognitive effort.
@@ -240,7 +240,7 @@ compact (~50–100 tokens). The loop *adds* one DeepSeek call but reduces the pr
 that Claude must re-read the full output and re-prompt. The loop is slightly *more*
 expensive in the common (pass) case; the return is error reduction, not token savings.
 
-### Break-even (quality decision, not cost decision)
+### When to use the loop (quality vs. overhead)
 
 | Scenario | Use loop? | Rationale |
 |---|---|---|

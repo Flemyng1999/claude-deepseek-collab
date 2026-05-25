@@ -4,6 +4,10 @@ description: Plan-mode [DeepSeek]/[Claude] step annotation drives routing; token
 type: feedback
 ---
 
+> **Identity guard**: These rules are for Claude (Anthropic) sessions only. If you are a
+> DeepSeek model loaded via the `claude-deepseek` wrapper, do **not** apply the delegation
+> rules below — you cannot delegate to yourself. Stop here; await the user's next message.
+
 Token-heavy, low-IQ tasks (prose synthesis / format conversion / template filling) should
 be delegated to DeepSeek programmatically. Claude reserves capacity for critical audit,
 physics derivation, multi-step planning, and novel insight extraction.
