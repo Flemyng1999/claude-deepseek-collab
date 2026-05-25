@@ -10,11 +10,13 @@ REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 echo "=== claude-deepseek-collab installer ==="
 echo ""
 
-# 1. Install the wrapper script
-echo "[1/4] Installing claude-deepseek to $BIN_DIR/"
+# 1. Install wrapper scripts
+echo "[1/4] Installing claude-deepseek + claude-deepseek-flash to $BIN_DIR/"
 mkdir -p "$BIN_DIR"
 cp "$REPO_DIR/bin/claude-deepseek" "$BIN_DIR/claude-deepseek"
 chmod +x "$BIN_DIR/claude-deepseek"
+cp "$REPO_DIR/bin/claude-deepseek-flash" "$BIN_DIR/claude-deepseek-flash"
+chmod +x "$BIN_DIR/claude-deepseek-flash"
 echo "      done"
 
 # 2. Create API key config if not present

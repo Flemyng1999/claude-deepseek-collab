@@ -130,14 +130,7 @@ for ((i=1; i<=N_RUNS; i++)); do
     START_NS=$(date +%s%N)
     set +e
     timeout "$DS_TIMEOUT" \
-        ANTHROPIC_BASE_URL="https://api.deepseek.com/anthropic" \
-        ANTHROPIC_AUTH_TOKEN="$DEEPSEEK_API_KEY" \
-        ANTHROPIC_MODEL="deepseek-v4-flash" \
-        ANTHROPIC_DEFAULT_OPUS_MODEL="deepseek-v4-flash" \
-        ANTHROPIC_DEFAULT_SONNET_MODEL="deepseek-v4-flash" \
-        ANTHROPIC_DEFAULT_HAIKU_MODEL="deepseek-v4-flash" \
-        CLAUDE_CODE_SUBAGENT_MODEL="deepseek-v4-flash" \
-        claude --print --bare -p "$PROMPT" > "$TMP/flash_run${i}.txt" 2>/dev/null
+        claude-deepseek-flash --print --bare -p "$PROMPT" > "$TMP/flash_run${i}.txt" 2>/dev/null
     rc=$?
     set -e
     END_NS=$(date +%s%N)
