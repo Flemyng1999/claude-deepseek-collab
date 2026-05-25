@@ -1,7 +1,7 @@
 
 # Protocol 08 — Stateless Chunk-Directive Protocol (SCDP)
 
-> **Status**: v0.1 — design spec, not yet implemented
+> **Status**: v0.1 — design spec, not yet implemented (roadmap only — no shipped scripts)
 > **Scope**: multi-round token-efficient file handoff from Claude (orchestrator) to DeepSeek (`--bare` mode, no file access)
 > **Depends on**: Protocol 01 (`protocols/01-routing.md`)
 
@@ -159,7 +159,7 @@ to understand the φ-parameter boundary conditions.
 
 ## Mediator Pseudocode
 
-The mediator is Claude itself, orchestrating via Bash. Below is the pseudocode for the core loop.
+The mediator is Claude itself, orchestrating via Bash. The block below is roadmap-only pseudocode; this repository does not currently ship `scripts/scdp_mediate.sh`.
 
 ```bash
 #!/usr/bin/env bash
@@ -479,6 +479,8 @@ scdp_log:
 
 ## Implementation Roadmap
 
+Roadmap only — these deliverables are not currently shipped in this repository.
+
 | Phase | Deliverable | Effort |
 |---|---|---|
 | **P0 — Capsule Generator** | Python script: `scripts/gen_capsule.py <file...> → capsule.yaml`. Semantic chunking, token estimation, SHA256 hashing. | 2–3 hours |
@@ -490,6 +492,8 @@ scdp_log:
 ---
 
 ## Appendix A: Capsule Generator Python Signature
+
+Roadmap only — this is a proposed signature, not a shipped `scripts/gen_capsule.py` file.
 
 ```python
 # scripts/gen_capsule.py (stub)

@@ -70,3 +70,12 @@ UNCERTAIN: [anything DeepSeek is unsure about]
 ```
 
 This lets Claude audit intent in ~50 tokens before reading the full output.
+
+
+**Advanced protocol triggers**
+
+- Independent DeepSeek tasks → use Protocol 04 async parallel temp-file pattern.
+- Multiple viable approaches before choosing → use Protocol 06 speculative execution.
+- DeepSeek output >200 tokens with factual accuracy risk → use Protocol 07 self-critique loop.
+- Large-file context that cannot fit inline → use Protocol 08 SCDP design spec if implemented; otherwise fall back to inline/pre-summarize.
+- Code with runnable tests → prefer tests as audit instead of Protocol 07 critique.
