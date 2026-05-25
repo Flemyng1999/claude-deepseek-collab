@@ -1,4 +1,3 @@
-```bash
 #!/usr/bin/env bash
 # run_all.sh — claude-deepseek-collab test suite orchestrator
 #
@@ -174,6 +173,3 @@ else
     echo -e "${RED}${FAIL_COUNT} test(s) failed.${NC}"
     exit 1
 fi
-```
-
----

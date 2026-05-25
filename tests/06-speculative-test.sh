@@ -1,4 +1,3 @@
-```bash
 #!/usr/bin/env bash
 # 06-speculative-test.sh — VALIDITY + BOUNDARY tests for Protocol 06
 #
@@ -177,6 +176,3 @@ if [[ "$FAILS" -gt 0 ]]; then
     exit 1
 fi
 exit 0
-```
-
----

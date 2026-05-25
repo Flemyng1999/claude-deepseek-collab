@@ -1,4 +1,3 @@
-```bash
 #!/usr/bin/env bash
 # benchmark-timing.sh — compare deepseek-v4-pro[1m] vs deepseek-v4-flash
 #
@@ -301,27 +300,3 @@ echo ""
 
 echo -e "${CYAN}Benchmark complete.${NC}"
 exit 0
-```
-
----
-
-All seven files are above. Here's a quick summary of each:
-
-| File | Tests | Exit 0 means |
-|---|---|---|
-| `tests/run_all.sh` | Orchestrator — discovers and runs all `??-*.sh` scripts, prints colour-coded pass/fail table | All tests passed |
-| `tests/03-programmatic-test.sh` | VALIDITY: `--print --bare` returns "HELLO" · BOUNDARY: empty prompt doesn't hang | Both pass |
-| `tests/04-async-parallel-test.sh` | VALIDITY: 2 parallel tasks captured · speedup < 1.5× · BOUNDARY: `VAR=$(cmd) &` anti-pattern confirmed | All pass |
-| `tests/05-structured-output-test.sh` | VALIDITY: FLAGS header present · BOUNDARY: missing header detected and flagged · loose-prompt resilience | All pass |
-| `tests/06-speculative-test.sh` | VALIDITY: 2 parallel JSON parseable · BOUNDARY: 3 instances complete ≤ 2× single time | All pass |
-| `tests/07-self-critique-test.sh` | VALIDITY-A: error injected → ISSUES catches it · VALIDITY-B: clean text → VERDICT=pass · BOUNDARY: empty draft graceful | All pass |
-| `tests/benchmark-timing.sh` | Compares v4-pro[1m] vs v4-flash: N=3× each, wall-time table, FLAGS-compliance proxy | Benchmark complete |
-
-Key design decisions:
-
-- **Timeout on every call** — prevents hangs from blocking the suite (30s for boundary tests, 120–180s for validity)
-- **Colour-coded output** — green PASS/red FAIL for quick scanning
-- **`trap` cleanup** — `mktemp -d` with `EXIT` trap ensures no temp-file leakage
-- **Protocol-accurate prompts** — test prompts match the exact phrasing from each protocol doc (e.g., Protocol 05's "Begin your response with:" is the precise instruction tested)
-- **Benchmark bypasses wrapper** — the `claude-deepseek` wrapper hardcodes model names via `export`, so flash calls go directly to `claude` with env vars set on the command line
-- **Anti-pattern test uses shell builtins** — the `VAR=$(cmd) &` test doesn't need DeepSeek at all; it's a pure shell-semantics demonstration confirming the protocol's warning

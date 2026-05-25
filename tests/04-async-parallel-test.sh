@@ -1,4 +1,3 @@
-```bash
 #!/usr/bin/env bash
 # 04-async-parallel-test.sh — VALIDITY + BOUNDARY tests for Protocol 04
 #
@@ -149,6 +148,3 @@ if [[ "$FAILS" -gt 0 ]]; then
     exit 1
 fi
 exit 0
-```
-
----

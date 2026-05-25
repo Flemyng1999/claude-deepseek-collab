@@ -1,4 +1,3 @@
-```bash
 #!/usr/bin/env bash
 # 07-self-critique-test.sh — VALIDITY + BOUNDARY tests for Protocol 07
 #
@@ -199,6 +198,3 @@ if [[ "$FAILS" -gt 0 ]]; then
     exit 1
 fi
 exit 0
-```
-
----

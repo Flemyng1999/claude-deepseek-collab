@@ -1,4 +1,3 @@
-```bash
 #!/usr/bin/env bash
 # 03-programmatic-test.sh — VALIDITY + BOUNDARY tests for Protocol 03
 #
@@ -115,6 +114,3 @@ if [[ "$FAILS" -gt 0 ]]; then
     exit 1
 fi
 exit 0
-```
-
----
