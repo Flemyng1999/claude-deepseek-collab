@@ -464,7 +464,7 @@ Total Claude tokens spent: ~230 (first audit ~150 + final audit ~80). This is a 
 
 ## 11. Logging
 
-Each invocation of Protocol 07 must produce a lightweight log entry in the vault journal:
+Each invocation of Protocol 07 must produce a lightweight log entry in your project log:
 
 ```
 > **Protocol 07 — Self-Critique Loop**

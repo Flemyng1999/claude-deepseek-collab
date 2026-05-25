@@ -486,7 +486,7 @@ Roadmap only — these deliverables are not currently shipped in this repository
 | **P0 — Capsule Generator** | Python script: `scripts/gen_capsule.py <file...> → capsule.yaml`. Semantic chunking, token estimation, SHA256 hashing. | 2–3 hours |
 | **P1 — Bash Mediator** | `scripts/scdp_mediate.sh` implementing the pseudocode loop above. | 2–3 hours |
 | **P2 — Claude Integration** | Ticket-generation pipeline (Protocol 01) auto-selects strategy and calls mediator when SCDP-eligible. | 1–2 hours |
-| **P3 — Logging & Audit** | Token-cost tracking, SCDP-log YAML output, integration with `WORKING.md` / vault journal. | 1 hour |
+| **P3 — Logging & Audit** | Token-cost tracking, SCDP-log YAML output, integration with `WORKING.md` / project log. | 1 hour |
 | **P4 — Sub-Capsuling** | If a single chunk is > 2000 tokens, the mediator can auto-sub-capsule it (recursive SCDP within a chunk). | Deferred to v0.2 |
 
 ---
