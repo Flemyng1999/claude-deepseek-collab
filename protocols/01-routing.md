@@ -13,7 +13,7 @@ novel derivations; DeepSeek handles volume.
 
 Delegate to DeepSeek when **all three** conditions hold:
 
-1. **Token-heavy**: expected output > ~150 tokens
+1. **Token-heavy**: expected output > ~50 tokens
 2. **Low-IQ**: the task is synthesis / conversion / formatting, not novel reasoning
 3. **Self-contained**: the task can be fully specified in a single prompt (no file access needed, or all relevant content can be embedded inline)
 

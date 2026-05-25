@@ -16,13 +16,16 @@ config/deepseek.env.example  # API key template
 rules/deepseek-delegation.md # Drop into ~/.claude/rules/ — loaded by Claude automatically
 hooks/session-start.snippet.json  # Optional: surface pending decisions at session start
 protocols/
-  01-routing.md              # When to use DeepSeek vs Claude
-  02-plan-annotation.md      # [DeepSeek]/[Claude] step tagging in Plan mode
-  03-programmatic.md         # --print --bare delegation pattern
-  04-async-parallel.md       # Parallel tasks with & + wait (~2 min for N tasks)
-  05-structured-output.md    # FLAGS-first format to minimize audit token cost
-  06-speculative-exec.md     # Multi-path exploration with parallel DeepSeek instances
-install.sh                   # Automated setup
+  01-routing.md                  # When to use DeepSeek vs Claude
+  02-plan-annotation.md          # [DeepSeek]/[Claude] step tagging in Plan mode
+  03-programmatic-delegation.md  # --print --bare delegation pattern
+  04-async-parallel.md           # Parallel tasks via temp files (~2 min for N tasks)
+  05-structured-output.md        # FLAGS-first format to minimize audit token cost
+  06-speculative-exec.md         # Multi-path exploration with parallel DeepSeek instances
+  07-self-critique-loop.md       # Two-instance quality loop (draft → critique → Claude compact audit)
+  08-scdp.md                     # Stateless Chunk-Directive Protocol for large-file tasks
+tests/                           # Validity + boundary tests per protocol; timing benchmark
+install.sh                       # Automated setup
 ```
 
 ## Quick start (5 minutes)
@@ -87,7 +90,7 @@ for the canonical configuration reference.
 ### The routing principle
 
 Delegate to DeepSeek when:
-1. Expected output > ~150 tokens
+1. Expected output > ~50 tokens
 2. Task is synthesis / conversion / formatting (not novel reasoning)
 3. Task can be fully specified in a single self-contained prompt
 
@@ -144,7 +147,7 @@ for the authoritative model list and any updates.
 |---|---|
 | `01-routing.md` | The decision threshold and routing table |
 | `02-plan-annotation.md` | Plan-mode `[DeepSeek]`/`[Claude]` step labeling |
-| `03-programmatic.md` | The `--print --bare` delegation pattern + prompt construction |
+| `03-programmatic-delegation.md` | The `--print --bare` delegation pattern + prompt construction |
 | `04-async-parallel.md` | Parallel delegation, error handling, rate limit guidance |
 | `05-structured-output.md` | FLAGS-first format, audit interpretation, example exchange |
 | `06-speculative-exec.md` | Multi-path parallel exploration for uncertain decisions |

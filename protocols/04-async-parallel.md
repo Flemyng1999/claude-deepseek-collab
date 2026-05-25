@@ -10,20 +10,27 @@ For independent tasks, always prefer parallel.
 ## Basic pattern
 
 ```bash
-RESULT1=$(claude-deepseek --print --bare -p "$PROMPT1") &
+TMP=$(mktemp -d)
+
+claude-deepseek --print --bare -p "$PROMPT1" > "$TMP/r1.txt" &
 PID1=$!
-RESULT2=$(claude-deepseek --print --bare -p "$PROMPT2") &
+claude-deepseek --print --bare -p "$PROMPT2" > "$TMP/r2.txt" &
 PID2=$!
 
 wait $PID1 $PID2
 
 echo "--- Task 1 ---"
-echo "$RESULT1"
+cat "$TMP/r1.txt"
 echo "--- Task 2 ---"
-echo "$RESULT2"
+cat "$TMP/r2.txt"
+rm -rf "$TMP"
 ```
 
 Tested: 2 tasks completed in ~9 seconds vs ~4+ minutes sequential.
+
+> **Why temp files, not variables**: `VAR=$(cmd) &` runs the assignment in a
+> background subshell — the variable is never set in the parent shell.
+> Always redirect to temp files and `cat` after `wait`.
 
 ## When tasks are independent
 
@@ -40,9 +47,19 @@ Examples of parallelizable tasks:
 
 ## Collecting output safely
 
-Shell variable subshell capture (`VAR=$(...)  &`) works correctly in bash.
-The variable is populated when the background subshell completes.
-`wait` blocks until all background jobs finish before proceeding.
+Redirect each background job to a temp file; read after `wait`:
+
+```bash
+TMP=$(mktemp -d)
+claude-deepseek --print --bare -p "$PROMPT" > "$TMP/result.txt" &
+wait
+RESULT=$(cat "$TMP/result.txt")
+rm -rf "$TMP"
+```
+
+`VAR=$(cmd) &` does **not** work — the assignment runs in a background subshell
+and the variable is never set in the parent shell. `wait` blocks until all
+background jobs finish before proceeding.
 
 ## Error handling
 

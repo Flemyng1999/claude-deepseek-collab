@@ -86,7 +86,16 @@ claude-deepseek --print --bare -p "$(cat critique_spec.md)" > critique.md
 
 `critique_spec.md` = the critique prompt template (§3) with the draft text substituted into the TEXT field.
 
-**Critical**: Instance 2 must **not** be given the original task spec. It reviews only the output — this prevents Instance 2 from anchoring on the spec and missing errors that violate the spec.
+**Instance 2 context**: provide a **one-sentence task brief + key constraint list** only.
+The full task specification is withheld to prevent anchoring — but Instance 2 must
+see enough constraints to detect spec violations (scope, format, naming conventions,
+excluded cases). Without any spec context, Instance 2 cannot flag that the draft
+violates the task's requirements.
+
+Example brief:
+> *Task*: Draft §3 Methods prose for a canopy reflectance manuscript.
+> *Constraints*: Use notation R_dif1 (not R_dir1); SZA=80° is explicitly excluded;
+> output must include FLAGS header per Protocol 05.
 
 ### Step 3 — Claude: Compact Audit
 
@@ -158,14 +167,19 @@ Examine for:
 
 Return ONLY:
 ISSUES: [numbered list, one issue per line. If no issues found, write "none"]
-VERDICT: pass | needs_revision
+VERDICT: pass | pass_with_notes | needs_revision
 ---
 [one sentence: the single most critical issue, or "no critical issues found"]
 ```
 
+`pass_with_notes` = draft passes core acceptance criteria but reviewer flagged
+non-blocking items. Claude treats this as `ACCEPT_WITH_NOTES` — merge and file
+the flagged items as follow-up tasks rather than blocking the pipeline.
+
 **Why this template works**:
 - The adversarial framing ("assume nothing is correct until proven") counters DeepSeek's known sycophancy bias
 - The six examination categories form a checklist — Instance 2 won't forget to check structural violations if it's in the list
+- Three-level verdict (pass | pass_with_notes | needs_revision) gives Claude granularity: accept clean, accept with tracked follow-ups, or block for revision
 - The output format is strict: ISSUES / VERDICT / `---` / one-sentence — easy for Claude to parse in ~200 tokens
 - "Return ONLY" prevents Instance 2 from adding disclaimers, hedging, or verbose explanations
 
@@ -187,48 +201,61 @@ VERDICT: pass | needs_revision
 
 ## 5. Cost Model
 
+The self-critique loop is a **quality mechanism**, not a cost-saving mechanism.
+It trades one additional DeepSeek call (Instance 2 adversarial review) for reduced
+Claude re-prompting iterations — catching errors before they reach the human or
+Claude audit stage, where correction cost is higher in both tokens and cognitive effort.
+
 ### Without loop (baseline: Protocol 03 + Protocol 05 only)
 
 ```
-1 × DeepSeek call (Instance 1 draft)      ~$0.01–$0.10
-1 × Claude full-read audit (~N tokens)    ~$0.03–$0.30 per 1K output tokens
-─────────────────────────────────────────
-Total                                     ~$0.04–$0.40
-Claude audit tokens: N (full output)
+1 × DeepSeek call (Instance 1 draft)            ~$0.01–$0.10
+1 × Claude compact audit (~50–100 tokens
+    via FLAGS header — Protocol 05)              ~$0.0015–$0.003
+─────────────────────────────────────────────────
+Total                                            ~$0.012–$0.103
+Claude audit tokens: 50–100 (FLAGS spot-check)
 ```
 
 ### With loop (Protocol 07)
 
 ```
-2 × DeepSeek calls (Instance 1 + Instance 2)  ~$0.02–$0.20
-    (Instance 1 and Instance 2 can be parallelized if
-     Instance 2 critiques a prior draft — see §6)
+2 × DeepSeek calls (Instance 1 + Instance 2)    ~$0.02–$0.20
 1 × Claude compact audit:
-    - pass case: ~60 tokens                    ~$0.002
-    - needs_revision case: ~200 tokens         ~$0.006
-─────────────────────────────────────────
-Total (pass case)                              ~$0.022–$0.202
-Total (needs_revision case)                    ~$0.026–$0.206
+    - pass / pass_with_notes: ~60 tokens         ~$0.002
+    - needs_revision: ~200 tokens                ~$0.006
+─────────────────────────────────────────────────
+Total (pass case)                                ~$0.022–$0.202
+Total (needs_revision case)                      ~$0.026–$0.206
 Claude audit tokens: 60–200 (regardless of output length)
 ```
 
-### Break-even analysis
+**Key insight**: With Protocol 05 already in place, baseline Claude audit is already
+compact (~50–100 tokens). The loop *adds* one DeepSeek call but reduces the probability
+that Claude must re-read the full output and re-prompt. The loop is slightly *more*
+expensive in the common (pass) case; the return is error reduction, not token savings.
 
-| Output length (N tokens) | Without loop (Claude cost) | With loop (Claude cost) | Savings |
-|---|---|---|---|
-| 100 | $0.003 | $0.002 (pass) | negligible — use direct audit |
-| 200 | $0.006 | $0.002–$0.006 | **break-even** |
-| 500 | $0.015 | $0.002–$0.006 | **2.5–7.5× cheaper** |
-| 1000 | $0.030 | $0.002–$0.006 | **5–15× cheaper** |
-| 5000 | $0.150 | $0.002–$0.006 | **25–75× cheaper** |
+### Break-even (quality decision, not cost decision)
 
-**Conclusion**: The loop is cost-positive for any output >200 tokens. The DeepSeek Instance 2 call ($0.01–$0.10) is the fixed overhead; it amortizes rapidly as output length grows. For paper-section-length drafts (1000–5000 tokens), the savings are substantial.
+| Scenario | Use loop? | Rationale |
+|---|---|---|
+| Scientific/technical output where errors propagate downstream | ✅ Yes | One extra DeepSeek call is negligible vs. cost of propagating an error |
+| Long prose (>500 tokens) with factual claims | ✅ Yes | Adversarial review catches errors FLAGS-only spot-check would miss |
+| Multi-section drafts with cross-references | ✅ Yes | Structural inconsistencies are hard to detect from FLAGS header alone |
+| Routine formatting or boilerplate | ❌ No | FLAGS spot-check sufficient; loop adds latency with no quality gain |
+| Single-paragraph answers (<150 tokens) | ❌ No | Overhead exceeds benefit |
+| Code with test suite | ❌ No | Tests are the audit |
 
-### When NOT to use (cost-negative scenarios)
+**Heuristic**: Use the loop when output quality matters more than minimizing DeepSeek
+calls — scientific accuracy, technical specifications, manuscript prose. Skip when
+errors are cheap to fix later.
 
-- Output <200 tokens: Instance 2 costs more than direct Claude audit
-- Needs_revision verdict with batch-2: 3 DeepSeek calls + Claude reads draft = ~cost-neutral vs direct Claude audit. Still worth it if the alternative is Claude spending cognitive effort on a full audit.
-- Instance 2 produces a verbose critique (>500 tokens): anomaly. Re-prompt Instance 2 with stricter output constraints.
+### When NOT to use
+
+- Output <150 tokens: Instance 2 call costs more than the value of its review
+- Strict latency budget: the loop adds one serialized DeepSeek invocation (~5–60s)
+- Batch-2 loops exhaust the 2-iteration cap with no improvement: task is likely mis-specified; extra calls are wasted
+- Instance 2 produces verbose critique (>500 tokens): anomaly — re-prompt with stricter output constraints
 
 ## 6. Async Parallel Optimization (with Protocol 04)
 
@@ -248,14 +275,16 @@ Draft B:         [Instance 1 ──→]  [Instance 2 ──→]  [Claude ──�
 ```
 
 ```bash
-# Launch Instance 1 for draft B while Instance 2 critiques draft A:
-claude-deepseek --print --bare -p "$(cat task_B.md)" &      # background
+TMP=$(mktemp -d)
+claude-deepseek --print --bare -p "$(cat task_B.md)" > "$TMP/draft_b.txt" &
 PID_B=$!
 
-claude-deepseek --print --bare -p "$(cat critique_A.md)"    # foreground
+claude-deepseek --print --bare -p "$(cat critique_A.md)"    # foreground — critique of draft A
 # → Claude audit of critique_A → verdict
 
-wait $PID_B  # Instance 1 for draft B is done
+wait $PID_B
+DRAFT_B=$(cat "$TMP/draft_b.txt")
+rm -rf "$TMP"
 ```
 
 This pattern works when you have a **queue of independent tasks** — the self-critique loop is applied to each, but the pipeline keeps all three stages busy.

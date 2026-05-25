@@ -18,12 +18,14 @@ PROMPT_A="Explore approach A: [description]. Return a compact JSON summary:
 PROMPT_B="Explore approach B: [description]. Return a compact JSON summary:
 {\"approach\": \"B\", \"pros\": [...], \"cons\": [...], \"blockers\": [...], \"verdict\": \"viable|risky|blocked\"}"
 
-SUMMARY_A=$(claude-deepseek --print --bare -p "$PROMPT_A") &
-SUMMARY_B=$(claude-deepseek --print --bare -p "$PROMPT_B") &
+TMP=$(mktemp -d)
+claude-deepseek --print --bare -p "$PROMPT_A" > "$TMP/a.txt" &
+claude-deepseek --print --bare -p "$PROMPT_B" > "$TMP/b.txt" &
 wait
 
-echo "$SUMMARY_A"
-echo "$SUMMARY_B"
+cat "$TMP/a.txt"
+cat "$TMP/b.txt"
+rm -rf "$TMP"
 # Claude reads ~60 tokens total and makes the routing decision
 ```
 

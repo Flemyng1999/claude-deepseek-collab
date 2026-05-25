@@ -3,8 +3,7 @@
 
 > **Status**: v0.1 — design spec, not yet implemented
 > **Scope**: multi-round token-efficient file handoff from Claude (orchestrator) to DeepSeek (`--bare` mode, no file access)
-> **Depends on**: Protocol 01 (Claude-DeepSeek Collaborative Architecture, `docs/Claude-DeepSeek Collaborative Architecture.md`)
-> **File convention**: English per AGENTS.md (AI-facing instruction text; LLMs follow English more reliably)
+> **Depends on**: Protocol 01 (`protocols/01-routing.md`)
 
 ---
 
