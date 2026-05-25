@@ -28,4 +28,9 @@ export ANTHROPIC_DEFAULT_HAIKU_MODEL="deepseek-v4-flash"
 export CLAUDE_CODE_SUBAGENT_MODEL="deepseek-v4-flash"
 export CLAUDE_CODE_EFFORT_LEVEL="max"
 
-exec claude "$@"
+# Interactive sessions (no --print) force --bare to prevent loading CLAUDE.md/routing rules.
+for arg in "$@"; do
+  [[ "$arg" == "--print" ]] && exec claude "$@"
+done
+echo "[claude-deepseek-flash] interactive session — --bare applied (project rules not loaded)" >&2
+exec claude --bare "$@"
