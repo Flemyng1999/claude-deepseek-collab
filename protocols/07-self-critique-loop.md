@@ -4,7 +4,7 @@
 >
 > **Problem**: DeepSeek V4 Pro generates fluent, structurally correct output but **does not self-audit**. Report summaries and artifact content can contradict; factual assertions may be inconsistent with provided evidence; structural commitments made in FLAGS headers may mismatch the body text. Without review, these errors propagate into downstream Claude audit — but Claude audit cost scales with output length.
 >
-> **Solution**: Insert a second DeepSeek instance as an adversarial reviewer between draft and Claude. Claude reads only the compact critique (~50–100 tokens) + FLAGS header, not the full output, for pass-verdict cases. For needs-revision cases, Claude reads the critique ISSUES list (~100–200 tokens) — still far less than the full draft.
+> **Solution**: Insert a second DeepSeek instance as an adversarial reviewer between draft and Claude. Claude reads the compact critique (~50–100 tokens) + FLAGS header for pass-verdict cases, or the critique ISSUES list (~100–200 tokens) for revision cases. This adds one DeepSeek call in exchange for stronger quality control than FLAGS-only spot-checking.
 
 ---
 
@@ -104,15 +104,18 @@ Claude reads only what is necessary:
 | VERDICT | What Claude reads | Approx. tokens |
 |---|---|---|
 | `pass` | FLAGS header + VERDICT line | ~60 |
+| `pass_with_notes` | FLAGS + ISSUES list + VERDICT + one-sentence summary | ~100–200 |
 | `needs_revision` | FLAGS + full ISSUES list + VERDICT + one-sentence summary | ~200 |
 
-Claude does **not** read the full draft body for a `pass` verdict. This is the cost-saving mechanism — the critique IS the compressed audit.
+Claude does **not** read the full draft body for a `pass` verdict. This is the quality-control mechanism — the critique is a compressed review signal, not proof that the loop is cheaper than the Protocol 05 FLAGS-only baseline.
 
 **Claude's decision tree**:
 
 1. **If VERDICT = pass**: spot-check FLAGS header for obvious red flags (e.g., UNCERTAIN lists a critical item). If FLAGS looks clean, ACCEPT draft. Claude may optionally sample 2–3 random sentences from the draft body as a sanity check — this should be rare and explicitly noted.
 
-2. **If VERDICT = needs_revision**: read the full ISSUES list. Decide:
+2. **If VERDICT = pass_with_notes**: read the ISSUES list, verify the top issue if needed, then ACCEPT_WITH_NOTES if all issues are non-blocking.
+
+3. **If VERDICT = needs_revision**: read the full ISSUES list. Decide:
    - **Re-prompt**: issues are systematic/spec-violating → write a corrected task spec incorporating the critique as constraints, re-run Instance 1 (Step 5 batch-2)
    - **Handle manually**: issues are minor/localized → Claude fixes directly (cost: Claude reads draft body once)
    - **Escalate**: issues touch governance boundary (scope, framing, core claims) → flag for PI
@@ -187,7 +190,7 @@ the flagged items as follow-up tasks rather than blocking the pipeline.
 
 | Scenario | Use loop? | Reason |
 |---|---|---|
-| Long prose output (>300 tokens) from DeepSeek | ✅ **YES** | Primary use case. Claude audit of full text would be expensive; critique amortizes well |
+| Long prose output (>300 tokens) from DeepSeek | ✅ **YES** | Primary use case. Longer drafts have more room for factual or structural drift; adversarial review improves quality control |
 | Scientific/technical text with factual claims | ✅ **YES** | Factual accuracy matters; Instance 2 adversarial review catches hallucinated numbers, wrong units, misattributed evidence |
 | Multi-section paper drafts (≥2 sections) | ✅ **YES** | Structural errors (e.g., §Results says X, §Discussion says Y) are hard to spot in a single read; adversarial review surfaces them |
 | Code generation with FLAGS header | ⚠️ **CONDITIONAL** | Use if output >200 lines and correctness matters. Skip for obvious boilerplate |
@@ -198,6 +201,8 @@ the flagged items as follow-up tasks rather than blocking the pipeline.
 | Task where Claude is Instance 1 (not DeepSeek) | ❌ **N/A** | This protocol is specifically for DeepSeek's known self-audit weakness. Claude self-audit is a different problem. |
 
 **Heuristic**: If the task would take Claude >15 seconds to read and audit the full output, use the loop. If Claude can spot-check in <5 seconds, don't.
+
+**Threshold distinction**: the values above answer different questions. `>300 tokens` is the recommended default for long prose; `<100 tokens` is a clear no-go for single-paragraph answers. Section 5 uses `<150 tokens` as the cost/benefit cutoff for cases that are short but not trivially single-paragraph. The quick reference rounds this into a practical `>200 tokens + factual accuracy matters` trigger.
 
 ## 5. Cost Model
 
@@ -357,19 +362,20 @@ If Instance 1 cannot produce a passing draft even after critique feedback, the b
 │ PROTOCOL 07 — SELF-CRITIQUE LOOP                            │
 │                                                              │
 │ WHEN: output >200 tokens + factual accuracy matters          │
-│ NOT: boilerplate, code-with-tests, <200 tokens              │
+│ NOT: boilerplate, code-with-tests, <150 tokens              │
 │                                                              │
 │ SEQUENCE:                                                    │
 │  1. Instance 1 drafts (with FLAGS header per Protocol 05)   │
 │  2. Instance 2 critiques (adversarial prompt template §3)   │
 │  3. Claude reads:                                            │
 │     - pass → FLAGS + VERDICT only (~60 tokens)              │
-│     - needs_revision → FLAGS + ISSUES (~200 tokens)         │
-│  4. Claude decides: ACCEPT / REVISE / REJECT                │
+│     - pass_with_notes / needs_revision → FLAGS + ISSUES     │
+│  4. Claude decides: ACCEPT / ACCEPT_WITH_NOTES / REVISE /   │
+│     REJECT                                                  │
 │  5. If REVISE: re-run Instance 1 with critique (max 2×)     │
 │                                                              │
 │ COST: 2× DeepSeek + ~60–200 Claude tokens                   │
-│ BREAK-EVEN: output >200 tokens                              │
+│ PURPOSE: quality control; not cheaper than FLAGS-only audit │
 │                                                              │
 │ FAILURE MODES:                                               │
 │  - Instance 2 too lenient → strengthen prompt               │
@@ -443,7 +449,7 @@ Revised task spec appends the critique. Instance 1 re-run produces corrected dra
 ```
 ISSUES:
 1. §3.4: the K̄ notation is introduced without definition — readers unfamiliar with the project will not know it means "effective mean scattering order"
-VERDICT: pass
+VERDICT: pass_with_notes
 ---
 missing definition of K̄, a minor but reader-facing issue
 ```
@@ -454,7 +460,7 @@ Claude reads: FLAGS + 1 ISSUE + VERDICT + summary ≈ 80 tokens.
 
 Issue 1 is real but minor — a missing definition, not a factual error. Claude verdict: **ACCEPT_WITH_NOTES**. Merge draft, file K̄-definition as a follow-up one-liner.
 
-Total Claude tokens spent: ~230 (first audit ~150 + final audit ~80) vs ~2500 tokens if Claude had read the full 1200-word draft twice.
+Total Claude tokens spent: ~230 (first audit ~150 + final audit ~80). This is a quality-control tradeoff relative to the Protocol 05 FLAGS-only baseline, not a guaranteed token-cost win.
 
 ## 11. Logging
 
@@ -465,10 +471,10 @@ Each invocation of Protocol 07 must produce a lightweight log entry in the vault
 > Task: [task description]
 > Draft length: [N tokens]
 > Instance 2 issues found: [count]
-> Instance 2 verdict: pass | needs_revision
+> Instance 2 verdict: pass | pass_with_notes | needs_revision
 > Claude verdict: ACCEPT | ACCEPT_WITH_NOTES | REVISE | REJECT
 > Batch-2 iterations: [0 | 1 | 2]
-> Claude tokens spent: [N] (vs [M] estimated without loop)
+> Claude tokens spent: [N] (quality-control overhead vs Protocol 05 FLAGS-only baseline)
 > Notes: [any anomalies, FM triggers, or PI-relevant observations]
 ```
 

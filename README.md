@@ -106,9 +106,13 @@ No user relay. Claude invokes this via Bash and receives output synchronously.
 
 **Parallel async** (Protocol 04):
 ```bash
-R1=$(claude-deepseek --print --bare -p "$P1") &
-R2=$(claude-deepseek --print --bare -p "$P2") &
+TMP=$(mktemp -d)
+claude-deepseek --print --bare -p "$P1" > "$TMP/r1.txt" &
+claude-deepseek --print --bare -p "$P2" > "$TMP/r2.txt" &
 wait
+cat "$TMP/r1.txt"
+cat "$TMP/r2.txt"
+rm -rf "$TMP"
 ```
 N independent tasks complete in ~2 min regardless of N (vs N×2 min sequential).
 

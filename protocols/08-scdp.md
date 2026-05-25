@@ -55,6 +55,10 @@ A capsule is a YAML-structured block embedded in the prompt. It contains an entr
 
 ### Capsule Block Syntax
 
+The following capsule is illustrative. Paths such as `notebook/...` and
+`scripts/gate_beta_...` are external-project examples, not files shipped in
+this repository.
+
 ```yaml
 --- CAPSULE v1 ---
 chunks:
@@ -177,10 +181,12 @@ resolve_chunks() {
     # Parse <<EXPAND ...>> directives from DeepSeek response $1
     # For each unique, valid chunk_id:
     #   1. Look up line_range from CAPSULE
-    #   2. sed -n "${start},${end}p" "$file_path" > $RESOLVED_DIR/${chunk_id}.txt
-    #   3. Print "RESOLVED: chunk_id (N tokens)" to stderr
+    #   2. Extract chunk text to a temp file
+    #   3. Verify content_hash before making the chunk visible
+    #   4. Print "RESOLVED: chunk_id (N tokens)" to stderr
     local response_file="$1"
-    local chunk_ids=($(grep -oP '<<EXPAND \K[^ >]+' "$response_file" | sort -u))
+    local chunk_ids=()
+    mapfile -t chunk_ids < <(grep -oP '<<EXPAND\s+\K[^ >]+(?=(\s+tokens=[0-9]+)?>>)' "$response_file" | sort -u || true)
     
     if [ ${#chunk_ids[@]} -eq 0 ]; then
         return 0  # no directives → final round
@@ -190,17 +196,31 @@ resolve_chunks() {
         echo "WARNING: ${#chunk_ids[@]} directives requested, capping at 8" >&2
         chunk_ids=("${chunk_ids[@]:0:8}")
     fi
+
+    # Validate all requested chunk_ids before expanding any chunk. If any id is
+    # invalid, the mediator must not partially expand the rest of the batch.
+    for cid in "${chunk_ids[@]}"; do
+        local exists=$(yq -r ".chunks[] | select(.chunk_id == \"$cid\") | .chunk_id" "$CAPSULE_FILE")
+        if [ -z "$exists" ]; then
+            echo "ERROR: chunk_id '$cid' not found in capsule; no chunks expanded this round" >&2
+            return 1
+        fi
+    done
     
     for cid in "${chunk_ids[@]}"; do
         local line_range=$(yq -r ".chunks[] | select(.chunk_id == \"$cid\") | .line_range | @tsv" "$CAPSULE_FILE")
-        if [ -z "$line_range" ]; then
-            echo "ERROR: chunk_id '$cid' not found in capsule" >&2
-            continue
-        fi
         local start=$(echo "$line_range" | cut -f1)
         local end=$(echo "$line_range" | cut -f2)
         local file_path=$(yq -r ".chunks[] | select(.chunk_id == \"$cid\") | .file_path" "$CAPSULE_FILE")
-        sed -n "${start},${end}p" "$file_path" > "$RESOLVED_DIR/${cid}.txt"
+        local expected_hash=$(yq -r ".chunks[] | select(.chunk_id == \"$cid\") | .content_hash" "$CAPSULE_FILE")
+        local out_file="$RESOLVED_DIR/${cid}.txt"
+        sed -n "${start},${end}p" "$file_path" > "$out_file"
+        local actual_hash=$(sha256sum "$out_file" | cut -d' ' -f1)
+        if [ "$actual_hash" != "$expected_hash" ]; then
+            rm -f "$out_file"
+            echo "ERROR: stale capsule for '$cid'; regenerate capsule before continuing" >&2
+            return 1
+        fi
         echo "RESOLVED: $cid → $file_path L${start}-${end}" >&2
     done
 }
@@ -430,7 +450,7 @@ When Claude (as manager) generates a DeepSeek worker ticket per Protocol 01, it 
 
 ### Delivery Report Integration
 
-When DeepSeek returns (with or without SCDP), Claude's review checklist (Protocol 01 §"Claude Review Prompt") adds one item:
+When DeepSeek returns (with or without SCDP), Claude's audit gate for DeepSeek output adds one item:
 
 > 8. **SCDP audit (if used)**: total rounds, chunks expanded vs capsule total, any stale-capsule detections, any directive syntax violations, token-cost estimate vs inline-embed baseline.
 

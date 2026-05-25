@@ -52,7 +52,7 @@ Examine for:
 
 Return ONLY:
 ISSUES: [numbered list, one issue per line. If no issues found, write "none"]
-VERDICT: pass | needs_revision
+VERDICT: pass | pass_with_notes | needs_revision
 ---
 [one sentence: the single most critical issue, or "no critical issues found"]
 CRITTPL
